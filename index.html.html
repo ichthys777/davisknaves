@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Davis Knaves</title>
+    <style>
+        :root { --gold: #ffd700; --bg: #050505; --card-w: 46px; --card-h: 68px; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
+        
+        #game-layout { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100dvh; 
+            background: radial-gradient(circle, #1b4d21 0%, #0a200b 100%); 
+            padding-bottom: 20px; /* Reduced to normal spacing */
+            box-sizing: border-box;
+            justify-content: space-between;
+        }
+
+        #watermark { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); font-size: 2.2rem; color: rgba(255,215,0,0.08); font-weight: 900; pointer-events: none; z-index: 1; letter-spacing: 4px; white-space: nowrap; }
+        #hud { position: relative; padding: 10px; display: flex; justify-content: space-between; z-index: 100; }
+        #score-panel { background: rgba(0,0,0,0.85); padding: 5px; border-radius: 4px; border: 1px solid #444; }
+        #score-table { font-size: 0.7rem; border-collapse: collapse; text-align: center; }
+        #score-table th { color: var(--gold); border-bottom: 1px solid #555; padding: 0 5px; }
+        #trump-box { background: white; color: black; padding: 5px; border-radius: 4px; border: 2px solid var(--gold); text-align: center; font-weight: bold; font-size: 0.8rem; min-width: 60px; }
+        #status-bar { width: 100%; text-align: center; font-size: 0.9rem; font-weight: bold; color: var(--gold); height: 25px; }
+        
+        #arena { 
+            flex: 1; 
+            display: grid; 
+            grid-template-areas: ". north ." "west table east" ". south ."; 
+            grid-template-columns: 1fr 1.4fr 1fr; 
+            grid-template-rows: 1fr 1.6fr 1fr; 
+            position: relative;
+        }
+
+        .plr-tag { font-size: 0.7rem; background: #222; padding: 3px 8px; border-radius: 6px; position: relative; z-index: 10; white-space: nowrap; }
+        .active-tag { background: #00ff00 !important; color: #000 !important; font-weight: bold; box-shadow: 0 0 10px #00ff00; }
+        .tag-j { margin-left: 4px; font-weight: 900; }
+        .j-red { color: #ff4444; }
+        .j-black { color: #aaa; }
+
+        .slot { width: var(--card-w); height: var(--card-h); border: 1px dashed rgba(255,255,255,0.1); border-radius: 4px; margin: auto; display: flex; align-items: center; justify-content: center; }
+        .card { 
+            width: var(--card-w); 
+            height: var(--card-h); 
+            background: white; 
+            color: black; 
+            border-radius: 4px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold; 
+            font-size: 0.9rem; 
+            border: 1px solid #999; 
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+        }
+        .card.red { color: #d32f2f; }
+        .card.legal { border: 2.5px solid #00ff00; transform: translateY(-2px); }
+        .card.selected { border: 3px solid var(--gold); transform: translateY(-12px); background: #fffbe6; }
+
+        #player-zone { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        #player-hand { display: flex; gap: 2px; justify-content: center; width: 100%; padding: 0 5px; box-sizing: border-box; }
+        .controls { margin-bottom: 10px; display: flex; gap: 10px; height: 35px; align-items: center; }
+        .btn { padding: 8px 16px; background: var(--gold); border: none; border-radius: 4px; font-weight: bold; font-size: 0.8rem; cursor: pointer; color: black; box-shadow: 0 3px 0 #b8860b; }
+        
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+        .modal { background: white; color: black; padding: 20px; border-radius: 12px; width: 85%; max-width: 320px; text-align: center; }
+        
+        #win-screen { position: fixed; inset: 0; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 6000; }
+        .confetti { position: absolute; width: 10px; height: 10px; z-index: 6001; animation: fall 3s linear infinite; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div id="game-layout">
+    <div id="watermark">DAVIS KNAVES</div>
+    <div id="hud">
+        <div id="score-panel"><table id="score-table"><thead><tr><th>PLR</th><th>BID</th><th>HND</th><th>TOT</th></tr></thead><tbody id="score-body"></tbody></table></div>
+        <div id="trump-box">TRUMP<br><span id="trump-suit">♣</span></div>
+    </div>
+    
+    <div id="status-bar"></div>
+
+    <div id="arena">
+        <div style="grid-area: north; text-align: center;"><div id="tag-1" class="plr-tag">NORTH</div><div id="slot-1" class="slot"></div></div>
+        <div style="grid-area: west; text-align: center;"><div id="tag-3" class="plr-tag">WEST</div><div id="slot-3" class="slot"></div></div>
+        <div style="grid-area: south; text-align: center;"><div id="tag-0" class="plr-tag">YOU</div><div id="slot-0" class="slot"></div></div>
+        <div style="grid-area: east; text-align: center;"><div id="tag-2" class="plr-tag">EAST</div><div id="slot-2" class="slot"></div></div>
+    </div>
+
+    <div id="player-zone">
+        <div class="controls" id="btn-container"></div>
+        <div id="player-hand"></div>
+    </div>
+</div>
+
+<div id="overlay"><div class="modal" id="modal-content">
+    <h2 style="margin:0; color:#1b4d21; font-size: 1.4rem;">DAVIS KNAVES</h2>
+    <p>Select Difficulty</p>
+    <button class="btn" style="width:100%; margin-bottom:12px;" onclick="startGame('beg')">BEGINNER</button>
+    <button class="btn" style="width:100%; background:#444; color:white;" onclick="startGame('pro')">PRO</button>
+</div></div>
+
+<div id="win-screen"><h1 style="color:var(--gold); font-size:2.5rem;">CONGRATULATIONS!</h1><h2 id="winner-name" style="margin:20px 0;"></h2><button class="btn" onclick="location.reload()">PLAY AGAIN</button></div>
+
+<script>
+// Strictly preserving all logic: 2 of trumps, Passing 3 cards, Difficulty, and Scoring.
+const SUITS = ['♣','♦','♠','♥'], VALS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'], ROTATION = ['♣','♦','♥','♠','NT'], CW_ORDER = [0, 3, 1, 2];
+let state = { players: [], handIdx: 0, trump: '♣', turn: null, bidderIdx: 0, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE', level: 'beg' };
+
+function startGame(lvl) { state.level = lvl; init(); document.getElementById('overlay').style.display = 'none'; }
+function init() { state.players = Array.from({length: 4}, (_, i) => ({ id: i, name: i === 0 ? "YOU" : ["NORTH", "EAST", "WEST"][i-1], hand: [], bid: '', hScore: 0, total: 0, jacks: [] })); startRound(); }
+
+function startRound() {
+    state.phase = 'BIDDING'; state.trump = ROTATION[state.handIdx % 5]; state.tricksPlayed = 0; state.trick = []; state.selected = [];
+    let deck = []; SUITS.forEach(s => VALS.forEach(v => deck.push({s, v, r: VALS.indexOf(v)}))); deck.sort(() => Math.random() - 0.5);
+    state.players.forEach(p => { p.hand = deck.splice(0, 13); p.bid = ''; p.hScore = 0; p.jacks = []; sortHand(p); });
+    state.bidderIdx = getNextCW(state.handIdx % 4);
+    const ts = document.getElementById('trump-suit'); ts.innerText = state.trump;
+    ts.style.color = (state.trump==='♥'||state.trump==='♦') ? 'red' : 'black';
+    updateUI(); checkNextBidder();
+}
+
+function getNextCW(id) { let idx = CW_ORDER.indexOf(id); return CW_ORDER[(idx + 1) % 4]; }
+function sortHand(p) { p.hand.sort((a,b) => a.s !== b.s ? SUITS.indexOf(a.s)-SUITS.indexOf(b.s) : a.r-b.r); }
+
+function checkNextBidder() {
+    if (state.phase !== 'BIDDING') return;
+    if (state.bidderIdx !== 0) { setTimeout(() => { state.players[state.bidderIdx].bid = Math.random() > 0.5 ? '+' : '-'; advanceBidder(); }, 600); } 
+    else { document.getElementById('btn-container').innerHTML = `<button class="btn" onclick="submitBid('+')">Pos (+)</button><button class="btn" style="background:#444; color:white; margin-left:10px;" onclick="submitBid('-')">Neg (-)</button>`; }
+    updateUI();
+}
+
+function submitBid(b) { state.players[0].bid = b; document.getElementById('btn-container').innerHTML = ''; advanceBidder(); }
+function advanceBidder() { if (state.players.filter(p => p.bid !== '').length === 4) { state.phase = 'PASSING'; } else { state.bidderIdx = getNextCW(state.bidderIdx); checkNextBidder(); } updateUI(); }
+
+function updateUI() {
+    const sb = document.getElementById('score-body');
+    const sorted = [state.players[0], state.players[3], state.players[1], state.players[2]];
+    sb.innerHTML = sorted.map(p => `<tr><td>${p.name}</td><td>${p.bid}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`).join('');
+    const handDiv = document.getElementById('player-hand'); handDiv.innerHTML = '';
+    state.players[0].hand.forEach((c, i) => {
+        const div = document.createElement('div');
+        div.className = `card ${c.s==='♥'||c.s==='♦'?'red':''} ${state.phase==='PLAYING'&&state.turn===0&&isLegal(c)?'legal':''} ${state.selected.includes(i)?'selected':''}`;
+        div.innerHTML = `<span>${c.v}</span><span>${c.s}</span>`;
+        div.onclick = () => handleCardClick(i); handDiv.appendChild(div);
+    });
+    document.getElementById('status-bar').innerText = state.phase === 'PASSING' ? 'PASS 3 CARDS TO WEST' : '';
+    for(let i=0; i<4; i++) {
+        const p = state.players[i];
+        const isActive = (state.phase==='BIDDING' && state.bidderIdx===i) || (state.phase==='PLAYING' && state.turn===i);
+        let tag = document.getElementById(`tag-${i}`);
+        tag.className = `plr-tag ${isActive ? 'active-tag' : ''}`;
+        let jackStr = p.jacks.map(s => `<span class="tag-j ${s==='♥'||s==='♦'?'j-red':'j-black'}">J${s}</span>`).join('');
+        tag.innerHTML = p.name + jackStr;
+    }
+}
+
+function handleCardClick(idx) {
+    if (state.phase === 'PASSING') {
+        if (state.selected.includes(idx)) state.selected = state.selected.filter(i => i !== idx);
+        else if (state.selected.length < 3) state.selected.push(idx);
+        const btnCont = document.getElementById('btn-container');
+        if (state.selected.length === 3) btnCont.innerHTML = `<button class="btn" style="background:#00ff00; box-shadow:0 3px 0 #008000;" onclick="executePass()">PASS 3</button>`;
+        else btnCont.innerHTML = `<span style="font-size:0.8rem;">Select ${3-state.selected.length} more</span>`;
+    } else if (state.phase === 'PLAYING' && state.turn === 0) {
+        if (isLegal(state.players[0].hand[idx])) { saveState(); playCard(0, idx); }
+    }
+    updateUI();
+}
+
+function saveState() { state.lastState = JSON.parse(JSON.stringify({ players: state.players, trick: state.trick, turn: state.turn, tricksPlayed: state.tricksPlayed })); }
+function undoMove() {
+    if (!state.lastState) return;
+    Object.assign(state, state.lastState); state.lastState = null;
+    document.getElementById('btn-container').innerHTML = '';
+    for(let i=0; i<4; i++) document.getElementById(`slot-${i}`).innerHTML = '';
+    state.trick.forEach(t => { document.getElementById(`slot-${t.player}`).innerHTML = `<div class="card ${t.card.s==='♥'||t.card.s==='♦'?'red':''}"><span>${t.card.v}</span><span>${t.card.s}</span></div>`; });
+    updateUI();
+}
+
+function executePass() {
+    let pCards = state.players.map((plr, i) => i === 0 ? state.selected.sort((a,b)=>b-a).map(idx=>plr.hand.splice(idx,1)[0]) : plr.hand.splice(0,3));
+    state.players[3].hand.push(...pCards[0]); state.players[1].hand.push(...pCards[3]); state.players[2].hand.push(...pCards[1]); state.players[0].hand.push(...pCards[2]);
+    state.players.forEach(sortHand); state.phase = 'PLAYING'; state.selected = []; document.getElementById('btn-container').innerHTML = '';
+    let leadS = (state.trump==='NT'?'♣':state.trump);
+    state.turn = state.players.findIndex(plr => plr.hand.some(c => c.v === '2' && c.s === leadS));
+    updateUI(); if (state.turn !== 0) setTimeout(aiPlay, 800);
+}
+
+function isLegal(c) {
+    if (state.tricksPlayed === 0 && state.trick.length === 0) return c.v === '2' && c.s === (state.trump==='NT'?'♣':state.trump);
+    if (state.trick.length === 0) return true;
+    let leadS = state.trick[0].card.s;
+    return state.players[state.turn].hand.some(x => x.s === leadS) ? c.s === leadS : true;
+}
+
+function playCard(pI, cI) {
+    let card = state.players[pI].hand.splice(cI, 1)[0]; state.trick.push({player: pI, card: card});
+    document.getElementById(`slot-${pI}`).innerHTML = `<div class="card ${card.s==='♥'||card.s==='♦'?'red':''}"><span>${card.v}</span><span>${card.s}</span></div>`;
+    if (state.trick.length < 4) { state.turn = getNextCW(pI); updateUI(); if (state.turn !== 0) setTimeout(aiPlay, 700); } 
+    else { state.turn = null; document.getElementById('btn-container').innerHTML = `<button class="btn" style="background:#ff4444; color:white; box-shadow:0 3px 0 #990000;" onclick="undoMove()">UNDO</button>`; setTimeout(resolveTrick, 2000); }
+}
+
+function aiPlay() {
+    let p = state.players[state.turn], legal = p.hand.filter(c => isLegal(c)); legal.sort((a,b) => a.r - b.r);
+    let chosen = (p.bid === '+' || state.level === 'pro') ? (state.trick.length === 0 ? legal[legal.length-1] : (legal.filter(c => cardBeat(c, state.trick.reduce((a,b)=>cardBeat(b.card, a.card)?b:a).card))[0] || legal[0])) : legal[0];
+    playCard(state.turn, p.hand.indexOf(chosen));
+}
+
+function cardBeat(n, o) {
+    let l = state.trick[0].card.s;
+    if (n.s === state.trump && o.s !== state.trump) return true;
+    if (o.s === state.trump && n.s !== state.trump) return false;
+    return n.s === l && (o.s !== l || n.r > o.r);
+}
+
+function resolveTrick() {
+    let winObj = state.trick.reduce((a,b) => cardBeat(b.card, a.card) ? b : a);
+    let jacks = state.trick.filter(t => t.card.v === 'J');
+    let pts = (state.tricksPlayed === 0 || state.tricksPlayed === 12) ? (-2 - (jacks.length * 2)) : ((jacks.length === 0) ? 2 : -(jacks.length * 2));
+    jacks.forEach(j => state.players[winObj.player].jacks.push(j.card.s));
+    state.players[winObj.player].hScore += pts;
+    state.tricksPlayed++; state.turn = winObj.player; state.trick = [];
+    document.getElementById('btn-container').innerHTML = '';
+    for(let i=0; i<4; i++) document.getElementById(`slot-${i}`).innerHTML = '';
+    if (state.tricksPlayed === 13) setTimeout(endRound, 500); else { updateUI(); if (state.turn !== 0) setTimeout(aiPlay, 800); }
+}
+
+function endRound() {
+    state.players.forEach(p => { 
+        if (p.bid === '+' && p.hScore > 0) p.total += p.hScore;
+        else if (p.bid === '-' && p.hScore < 0) p.total += Math.abs(p.hScore);
+    });
+    let max = Math.max(...state.players.map(p => p.total));
+    let winners = state.players.filter(p => p.total === max && p.total >= 10);
+    document.getElementById('overlay').style.display = 'flex';
+    document.getElementById('modal-content').innerHTML = `<h2 style="margin:0; font-size:1.1rem; color:#1b4d21;">ROUND OVER</h2><table id="modal-table"><thead><tr><th>Player</th><th>Bid</th><th>Hand</th><th>Total</th></tr></thead><tbody>` + 
+    [state.players[0], state.players[3], state.players[1], state.players[2]].map(p => `<tr><td>${p.name}</td><td>${p.bid}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`).join('') + `</tbody></table><div id="modal-btn-area"></div>`;
+    
+    const btnArea = document.getElementById('modal-btn-area');
+    if (winners.length === 1) {
+        state.winner = winners[0];
+        btnArea.innerHTML = `<button class="btn" style="margin-top:15px; width:100%; background:#00ff00; box-shadow:0 3px 0 #008000;" onclick="showWinScreen()">VIEW WINNER</button>`;
+    } else {
+        btnArea.innerHTML = `<button class="btn" style="margin-top:15px; width:100%;" onclick="nextHand()">CONTINUE</button>`;
+    }
+}
+
+function showWinScreen() {
+    document.getElementById('overlay').style.display = 'none';
+    const screen = document.getElementById('win-screen');
+    document.getElementById('winner-name').innerText = state.winner.name + " WON!";
+    screen.style.display = 'flex';
+    for (let i = 0; i < 60; i++) {
+        let c = document.createElement('div'); c.className = 'confetti';
+        c.style.left = Math.random() * 100 + 'vw'; c.style.top = '-10px';
+        c.style.backgroundColor = ['#ff0','#f0f','#0ff','#0f0'][Math.floor(Math.random()*4)];
+        c.style.animationDelay = Math.random() * 3 + 's'; screen.appendChild(c);
+    }
+}
+function nextHand() { document.getElementById('overlay').style.display = 'none'; state.handIdx++; startRound(); }
+</script>
+</body>
+</html>
