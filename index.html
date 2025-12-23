@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Davis Knaves - Balanced Pro</title>
+    <title>Davis Knaves - Balanced</title>
     <style>
         :root { --gold: #ffd700; --bg: #050505; --card-w: 48px; --card-h: 70px; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
@@ -14,7 +14,7 @@
         #score-table { font-size: 0.7rem; border-collapse: collapse; text-align: center; width: 100%; }
         #score-table th { color: var(--gold); border-bottom: 1px solid #555; }
         .j-mini { font-size: 0.65rem; margin-left: 2px; color: var(--gold); font-weight: bold; background: rgba(255,215,0,0.2); padding: 0 2px; border-radius: 2px; }
-        #trump-box { background: white; color: black; padding: 8px; border-radius: 6px; border: 3px solid var(--gold); text-align: center; font-weight: bold; font-size: 1rem; min-width: 70px; box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+        #trump-box { background: white; color: black; padding: 8px; border-radius: 6px; border: 3px solid var(--gold); text-align: center; font-weight: bold; font-size: 1rem; min-width: 70px; }
         #arena { flex: 1; display: grid; grid-template-areas: ". north ." "west table east" ". south ."; grid-template-columns: 1fr 1.2fr 1fr; grid-template-rows: 1fr 1.4fr 1fr; position: relative; }
         .plr-tag { font-size: 0.75rem; background: #222; padding: 4px 10px; border-radius: 6px; }
         .active-tag { background: #00ff00 !important; color: #000 !important; font-weight: bold; box-shadow: 0 0 12px #00ff00; }
@@ -56,7 +56,7 @@
 </div>
 <div id="overlay"><div class="modal" id="modal-content">
     <h2 style="margin:0; color:#1b4d21;">DAVIS KNAVES</h2>
-    <p style="font-size:0.9rem;">Trick 1 & 13: -1<br>Each Jack: -2<br>Clean Tricks: +1<br><b>Goal: 10 Points</b></p>
+    <p style="font-size:0.9rem;">Trick 1 & 13: -1 pt<br>Each Jack: -2 pts<br>Clean Tricks: +1 pt</p>
     <button class="btn" style="width:100%" onclick="startGame()">START GAME</button>
 </div></div>
 
@@ -107,7 +107,7 @@ function handleCardClick(idx) {
         else if (state.selected.length < 3) state.selected.push(idx);
         const btnCont = document.getElementById('btn-container');
         if (state.selected.length === 3) btnCont.innerHTML = `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3</button>`;
-        else btnCont.innerHTML = `<span style="font-size:0.8rem; color:white;">Select ${3-state.selected.length} cards</span>`;
+        else btnCont.innerHTML = `<span style="font-size:0.8rem; color:white;">Select ${3-state.selected.length}</span>`;
     } else if (state.phase === 'PLAYING' && state.turn === 0) {
         if (isLegal(state.players[0].hand[idx])) playCard(0, idx);
     }
@@ -166,13 +166,13 @@ function resolveTrick() {
     let jacks = state.trick.filter(t => t.card.v === 'J');
     let pts = 0;
     
-    // Balanced Scoring Logic
+    // Balanced Scoring Logic: -1 for ends, -2 per Jack
     if (state.tricksPlayed === 0 || state.tricksPlayed === 12) {
-        pts = -1; // End tricks are only -1
+        pts = -1; 
     } else if (jacks.length > 0) {
-        pts = (jacks.length * -2); // Jacks are -2, and you lose the trick point
+        pts = (jacks.length * -2); 
     } else {
-        pts = 1; // Clean middle tricks are +1
+        pts = 1; 
     }
 
     jacks.forEach(j => state.players[winObj.player].jacks.push(j.card.s));
