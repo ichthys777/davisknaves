@@ -72,7 +72,10 @@
         🟢 <b>Lead Card:</b> Outlined in Bright Green
     </div>
     <button class="btn" style="width:100%; margin-bottom:12px;" onclick="startGame()">START GAME</button>
-    <button class="btn" style="width:100%; background:#444; color:white; font-size:0.9rem;" onclick="showHOF()">🏆 HALL OF FAME</button>
+    <div style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1; background:#444; color:white; font-size:0.8rem; padding:10px;" onclick="showHOF()">🏆 HOF</button>
+        <button class="btn" style="flex:1; background:#d32f2f; color:white; font-size:0.8rem; padding:10px;" onclick="clearCache()">CLEAR CACHE</button>
+    </div>
 </div></div>
 
 <div id="win-screen">
@@ -86,14 +89,13 @@
 const SUITS = ['♣','♦','♠','♥'], VALS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'], ROTATION = ['♣','♦','♥','♠','NT'], CW_ORDER = [0, 3, 1, 2];
 let state = { players: [], handIdx: 0, trump: '♣', turn: null, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE', undoTimer: null };
 
-function clearCache() { if(confirm("Wipe all win history and reset statistics?")) { localStorage.clear(); location.reload(); } }
+function clearCache() { if(confirm("Wipe all data and history?")) { localStorage.clear(); location.reload(); } }
 
 function showHOF() {
     const wins = JSON.parse(localStorage.getItem('knaveWins') || '{"YOU":0,"NORTH":0,"EAST":0,"WEST":0}');
     document.getElementById('modal-content').innerHTML = `<h3>🏆 HALL OF FAME</h3>` + 
         Object.entries(wins).map(([k,v]) => `<p>${k}: ${v} Victories</p>`).join('') + 
-        `<button class="btn" style="width:100%; margin-top:10px;" onclick="location.reload()">BACK</button>` +
-        `<button class="btn" style="width:100%; margin-top:10px; background:#d32f2f; color:white;" onclick="clearCache()">CLEAR ALL DATA</button>`;
+        `<button class="btn" style="width:100%; margin-top:10px;" onclick="location.reload()">BACK</button>`;
 }
 
 function recordWin(name) {
