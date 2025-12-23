@@ -58,7 +58,7 @@
         <div style="grid-area: east; text-align: center;"><div id="tag-2" class="plr-tag">EAST</div><div id="slot-2" class="slot"></div></div>
     </div>
     <div id="player-zone">
-        <div id="btn-container" style="margin-bottom:10px; height:40px; display:flex; align-items:center; gap:10px; font-weight:bold; color:var(--gold);"></div>
+        <div id="btn-container" style="margin-bottom:10px; height:40px; display:flex; align-items:center; gap:10px; font-weight:bold; color:var(--gold); text-shadow: 1px 1px 2px black;"></div>
         <div id="player-hand"></div>
     </div>
 </div>
@@ -70,7 +70,7 @@
         ❌ <b>Trick 1 & 13:</b> -1 pt<br>
         ❌ <b>Jacks:</b> -1 pt each<br>
         🟢 <b>Lead Card:</b> Outlined in Bright Green<br><br>
-        <i>* To begin, select 3 cards to pass to the player on your left.</i>
+        👉 <b>Pass Phase:</b> Select 3 cards to pass LEFT.
     </div>
     <button class="btn" style="width:100%; margin-bottom:12px;" onclick="startGame()">START GAME</button>
     <div style="display:flex; gap:10px;">
@@ -127,6 +127,7 @@ function updateUI() {
         let jacks = p.jacks.map(j => `<span class="j-mini">J${j}</span>`).join('');
         return `<tr><td style="text-align:left; padding-left:5px;">${p.name}${jacks}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`;
     }).join('');
+    
     const handDiv = document.getElementById('player-hand'); handDiv.innerHTML = '';
     state.players[0].hand.forEach((c, i) => {
         const div = document.createElement('div');
@@ -134,15 +135,19 @@ function updateUI() {
         div.innerHTML = `<span>${c.v}</span><span>${c.s}</span>`;
         div.onclick = () => handleCardClick(i); handDiv.appendChild(div);
     });
+
     for(let i=0; i<4; i++) {
         document.getElementById(`tag-${i}`).className = `plr-tag ${state.turn===i ? 'active-tag' : ''}`;
     }
-    
-    // Status text for passing
+
+    // UPDATED: Logic to ensure "PASS 3 LEFT" instruction always displays during phase
     if (state.phase === 'PASSING') {
-        document.getElementById('btn-container').innerHTML = state.selected.length === 3 
-            ? `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3 LEFT</button>` 
-            : `SELECT 3 CARDS TO PASS LEFT (${3 - state.selected.length} LEFT)`;
+        const btnCont = document.getElementById('btn-container');
+        if (state.selected.length === 3) {
+            btnCont.innerHTML = `<button class="btn" style="background:#00ff00; width:100%;" onclick="executePass()">PASS 3 LEFT</button>`;
+        } else {
+            btnCont.innerHTML = `SELECT 3 CARDS TO PASS LEFT (${3 - state.selected.length} MORE)`;
+        }
     }
 }
 
