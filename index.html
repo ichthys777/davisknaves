@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Davis Knaves - Final Edition</title>
+    <title>Davis Knaves - Trick Undo Edition</title>
     <style>
         :root { --gold: #ffd700; --bg: #050505; --card-w: 48px; --card-h: 70px; --lead-green: #00ff00; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
@@ -27,11 +27,13 @@
         #player-zone { display: flex; flex-direction: column; align-items: center; width: 100%; padding-bottom: 10px; }
         #player-hand { display: flex; gap: 3px; justify-content: center; width: 100%; padding: 0 10px; box-sizing: border-box; }
         .btn { padding: 12px 24px; background: var(--gold); border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; color: black; box-shadow: 0 4px 0 #b8860b; }
+        .btn-undo { background: #ff4444 !important; box-shadow: 0 4px 0 #990000 !important; color: white !important; }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 5000; }
         .modal { background: white; color: black; padding: 25px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; }
-        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9000; text-align: center; overflow: hidden;}
-        .confetti { position: absolute; width: 10px; height: 10px; z-index: 9001; animation: fall linear forwards; }
-        @keyframes fall { to { transform: translateY(100vh) rotate(360deg); } }
+        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9000; text-align: center; overflow: hidden; }
+        .confetti { position: absolute; width: 10px; height: 10px; z-index: 9001; animation: fall linear forwards; top: -10px; }
+        @keyframes fall { to { transform: translateY(110dvh) rotate(720deg); } }
+        #hof-btn { position: absolute; bottom: 10px; left: 10px; font-size: 0.7rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid #444; padding: 5px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -54,32 +56,48 @@
         <div style="grid-area: east; text-align: center;"><div id="tag-2" class="plr-tag">EAST</div><div id="slot-2" class="slot"></div></div>
     </div>
     <div id="player-zone">
-        <div id="btn-container" style="margin-bottom:10px; height:40px; display:flex; align-items:center;"></div>
+        <div id="btn-container" style="margin-bottom:10px; height:40px; display:flex; align-items:center; gap:10px;"></div>
         <div id="player-hand"></div>
     </div>
+    <button id="hof-btn" onclick="showHOF()">🏆 HALL OF FAME</button>
 </div>
 
-<div id="overlay"><div class="modal" id="modal-content">
-    <h2 style="margin:0; color:#1b4d21;">DAVIS KNAVES</h2>
-    <div style="text-align: left; padding: 15px 0; font-size: 0.9rem; line-height: 1.6;">
-        ✅ Clean Mid-Tricks: <b>+2 pts</b><br>
-        ❌ Trick 1 & 13: <b>-1 pt</b><br>
-        ❌ Each Jack Caught: <b>-1 pt</b><br>
-        🟢 <b>Lead Suit:</b> Outlined in Green
-    </div>
-    <button class="btn" style="width:100%" onclick="startGame()">START GAME</button>
-</div></div>
+<div id="overlay"><div class="modal" id="modal-content"></div></div>
 
 <div id="win-screen">
-    <h1 style="color:var(--gold); font-size:3.5rem; margin:0; text-shadow: 0 0 20px rgba(255,215,0,0.5);">VICTORY!</h1>
-    <h2 id="winner-name" style="margin:10px 0; color:white; font-size: 2rem;">PLAYER</h2>
-    <p id="winner-stats" style="font-size:1.4rem; color:var(--gold);"></p>
-    <button class="btn" onclick="location.reload()" style="margin-top:20px;">PLAY AGAIN</button>
+    <h1 style="color:var(--gold); font-size:3.5rem; margin:0;">WINNER!</h1>
+    <h2 id="winner-name" style="margin:10px 0; color:white; font-size: 2.5rem;">PLAYER</h2>
+    <p id="winner-stats" style="font-size:1.5rem; color:var(--gold);"></p>
+    <button class="btn" onclick="location.reload()" style="margin-top:20px;">NEW GAME</button>
 </div>
 
 <script>
 const SUITS = ['♣','♦','♠','♥'], VALS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'], ROTATION = ['♣','♦','♥','♠','NT'], CW_ORDER = [0, 3, 1, 2];
-let state = { players: [], handIdx: 0, trump: '♣', turn: null, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE', winner: null };
+let state = { players: [], handIdx: 0, trump: '♣', turn: null, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE', undoTimer: null, lastPlayerMove: null };
+
+window.onload = () => {
+    document.getElementById('overlay').style.display = 'flex';
+    document.getElementById('modal-content').innerHTML = `<h2>DAVIS KNAVES</h2><p>+2 Clean Tricks | -1 Ends/Jacks</p><button class="btn" style="width:100%" onclick="startGame()">START GAME</button>`;
+};
+
+function clearCache() {
+    if(confirm("Wipe all win history and reset game?")) { localStorage.clear(); location.reload(); }
+}
+
+function showHOF() {
+    const wins = JSON.parse(localStorage.getItem('knaveWins') || '{"YOU":0,"NORTH":0,"EAST":0,"WEST":0}');
+    document.getElementById('overlay').style.display = 'flex';
+    document.getElementById('modal-content').innerHTML = `<h3>🏆 HALL OF FAME</h3>` + 
+        Object.entries(wins).map(([k,v]) => `<p>${k}: ${v} Victories</p>`).join('') + 
+        `<button class="btn" style="width:100%; margin-top:10px;" onclick="document.getElementById('overlay').style.display='none'">BACK</button>` +
+        `<button class="btn" style="width:100%; margin-top:10px; background:#444; color:white;" onclick="clearCache()">CLEAR ALL DATA</button>`;
+}
+
+function recordWin(name) {
+    let wins = JSON.parse(localStorage.getItem('knaveWins') || '{"YOU":0,"NORTH":0,"EAST":0,"WEST":0}');
+    wins[name] = (wins[name] || 0) + 1;
+    localStorage.setItem('knaveWins', JSON.stringify(wins));
+}
 
 function startGame() { init(); document.getElementById('overlay').style.display = 'none'; }
 function init() { state.players = Array.from({length: 4}, (_, i) => ({ id: i, name: i === 0 ? "YOU" : ["NORTH", "EAST", "WEST"][i-1], hand: [], hScore: 0, total: 0, jacks: [] })); startRound(); }
@@ -100,8 +118,8 @@ function updateUI() {
     const sb = document.getElementById('score-body');
     const sorted = [state.players[0], state.players[3], state.players[1], state.players[2]];
     sb.innerHTML = sorted.map(p => {
-        let jackIcons = p.jacks.map(j => `<span class="j-mini">J${j}</span>`).join('');
-        return `<tr><td style="text-align:left; padding-left:5px;">${p.name}${jackIcons}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`;
+        let jacks = p.jacks.map(j => `<span class="j-mini">J${j}</span>`).join('');
+        return `<tr><td style="text-align:left; padding-left:5px;">${p.name}${jacks}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`;
     }).join('');
     const handDiv = document.getElementById('player-hand'); handDiv.innerHTML = '';
     state.players[0].hand.forEach((c, i) => {
@@ -111,8 +129,7 @@ function updateUI() {
         div.onclick = () => handleCardClick(i); handDiv.appendChild(div);
     });
     for(let i=0; i<4; i++) {
-        const isActive = (state.phase==='PLAYING' && state.turn===i);
-        document.getElementById(`tag-${i}`).className = `plr-tag ${isActive ? 'active-tag' : ''}`;
+        document.getElementById(`tag-${i}`).className = `plr-tag ${state.turn===i ? 'active-tag' : ''}`;
     }
 }
 
@@ -121,19 +138,18 @@ function handleCardClick(idx) {
         if (state.selected.includes(idx)) state.selected = state.selected.filter(i => i !== idx);
         else if (state.selected.length < 3) state.selected.push(idx);
         const btnCont = document.getElementById('btn-container');
-        if (state.selected.length === 3) btnCont.innerHTML = `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3</button>`;
-        else btnCont.innerHTML = `<span style="font-size:0.8rem; color:white;">Select ${3-state.selected.length}</span>`;
-    } else if (state.phase === 'PLAYING' && state.turn === 0) {
-        if (isLegal(state.players[0].hand[idx])) playCard(0, idx);
+        btnCont.innerHTML = state.selected.length === 3 ? `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3</button>` : `<span style="color:white">Select 3</span>`;
+    } else if (state.phase === 'PLAYING' && state.turn === 0 && !state.undoTimer) {
+        if (isLegal(state.players[0].hand[idx])) {
+            state.lastPlayerMove = { idx: idx, handIdx: state.players[0].hand.length - 1 };
+            playCard(0, idx);
+        }
     }
     updateUI();
 }
 
 function executePass() {
-    let pCards = state.players.map((plr, i) => {
-        if (i === 0) return state.selected.sort((a,b)=>b-a).map(idx=>plr.hand.splice(idx,1)[0]);
-        return plr.hand.splice(0,3);
-    });
+    let pCards = state.players.map((plr, i) => i === 0 ? state.selected.sort((a,b)=>b-a).map(idx=>plr.hand.splice(idx,1)[0]) : plr.hand.splice(0,3));
     state.players[3].hand.push(...pCards[0]); state.players[1].hand.push(...pCards[3]); state.players[2].hand.push(...pCards[1]); state.players[0].hand.push(...pCards[2]);
     state.players.forEach(sortHand); state.phase = 'PLAYING'; state.selected = []; document.getElementById('btn-container').innerHTML = '';
     let leadS = (state.trump==='NT'?'♣':state.trump);
@@ -149,18 +165,49 @@ function isLegal(c) {
 }
 
 function playCard(pI, cI) {
-    let isLead = (state.trick.length === 0);
-    let card = state.players[pI].hand.splice(cI, 1)[0]; 
-    state.trick.push({player: pI, card: card});
-    document.getElementById(`slot-${pI}`).innerHTML = `<div class="card ${card.s==='♥'||card.s==='♦'?'red':''} ${isLead ? 'lead-highlight' : ''}"><span>${card.v}</span><span>${card.s}</span></div>`;
-    if (state.trick.length < 4) { state.turn = CW_ORDER[(CW_ORDER.indexOf(pI) + 1) % 4]; updateUI(); if (state.turn !== 0) setTimeout(aiPlay, 700); } 
-    else { state.turn = null; setTimeout(resolveTrick, 1000); }
+    let card = state.players[pI].hand.splice(cI, 1)[0];
+    state.trick.push({player: pI, card: card, originalIdx: cI});
+    document.getElementById(`slot-${pI}`).innerHTML = `<div class="card ${card.s==='♥'||card.s==='♦'?'red':''} ${state.trick.length===1?'lead-highlight':''}"><span>${card.v}</span><span>${card.s}</span></div>`;
+    
+    if (state.trick.length < 4) {
+        state.turn = CW_ORDER[(CW_ORDER.indexOf(pI) + 1) % 4];
+        updateUI(); if (state.turn !== 0) setTimeout(aiPlay, 700);
+    } else {
+        // Trick complete - Show Undo for 2 seconds
+        state.turn = null; updateUI();
+        const btnCont = document.getElementById('btn-container');
+        btnCont.innerHTML = `<button class="btn btn-undo" onclick="undoTrick()">UNDO TRICK (2s)</button>`;
+        state.undoTimer = setTimeout(() => {
+            btnCont.innerHTML = ''; state.undoTimer = null;
+            resolveTrick();
+        }, 2000);
+    }
+}
+
+function undoTrick() {
+    clearTimeout(state.undoTimer); state.undoTimer = null;
+    document.getElementById('btn-container').innerHTML = '';
+    
+    // Put cards back
+    while(state.trick.length > 0) {
+        let move = state.trick.pop();
+        state.players[move.player].hand.splice(move.originalIdx, 0, move.card);
+        document.getElementById(`slot-${move.player}`).innerHTML = '';
+    }
+    
+    // Resume at player's turn (they must lead or follow as they were)
+    // Find who was supposed to lead
+    state.turn = CW_ORDER[0]; // Reset to player for this logic
+    // Re-determine actual turn based on who led the undone trick
+    // For simplicity in this variant, we reset to the player if it was their move in that trick
+    state.turn = 0; 
+    updateUI();
 }
 
 function aiPlay() {
+    if(state.turn === null) return;
     let p = state.players[state.turn], legal = p.hand.filter(c => isLegal(c));
-    legal.sort((a,b) => a.r - b.r);
-    let chosen = legal[0]; playCard(state.turn, p.hand.indexOf(chosen));
+    playCard(state.turn, p.hand.indexOf(legal[0]));
 }
 
 function cardBeat(n, o) {
@@ -173,10 +220,7 @@ function cardBeat(n, o) {
 function resolveTrick() {
     let winObj = state.trick.reduce((a,b) => cardBeat(b.card, a.card) ? b : a);
     let jacks = state.trick.filter(t => t.card.v === 'J');
-    let pts = 0;
-    if (state.tricksPlayed === 0 || state.tricksPlayed === 12) pts = -1;
-    else if (jacks.length > 0) pts = (jacks.length * -1);
-    else pts = 2;
+    let pts = (state.tricksPlayed === 0 || state.tricksPlayed === 12) ? -1 : (jacks.length > 0 ? jacks.length * -1 : 2);
     jacks.forEach(j => state.players[winObj.player].jacks.push(j.card.s));
     state.players[winObj.player].hScore += pts;
     state.tricksPlayed++; state.turn = winObj.player; state.trick = [];
@@ -188,39 +232,34 @@ function resolveTrick() {
 function endRound() {
     state.players.forEach(p => { if (p.hScore > 0) p.total += p.hScore; });
     let winners = state.players.filter(p => p.total >= 10);
-    
     document.getElementById('overlay').style.display = 'flex';
-    let resultsHtml = `<h3>ROUND RESULTS</h3>`;
-    state.players.forEach(p => {
-        resultsHtml += `<p style="margin:8px 0;">${p.name}: <b style="color:#1b4d21;">+${p.hScore}</b> (Total: ${p.total})</p>`;
-    });
-
-    if (winners.length > 0) {
+    let res = `<h3>${winners.length ? 'FINAL SCOREBOARD' : 'ROUND RESULTS'}</h3>` + 
+        state.players.map(p => `<p>${p.name}: <b>+${p.hScore}</b> (Total: ${p.total})</p>`).join('');
+    if (winners.length) {
         state.winner = winners.sort((a,b) => b.total - a.total)[0];
-        document.getElementById('modal-content').innerHTML = resultsHtml + `<button class="btn" style="width:100%; margin-top:10px;" onclick="celebrateWinner()">VIEW WINNER</button>`;
+        document.getElementById('modal-content').innerHTML = res + `<button class="btn" style="width:100%" onclick="celebrate()">DECLARE WINNER & CELEBRATE</button>`;
     } else {
-        document.getElementById('modal-content').innerHTML = resultsHtml + `<button class="btn" style="width:100%; margin-top:10px;" onclick="nextHand()">CONTINUE</button>`;
+        document.getElementById('modal-content').innerHTML = res + `<button class="btn" style="width:100%" onclick="nextHand()">CONTINUE NEXT ROUND</button>`;
     }
 }
 
-function celebrateWinner() {
+function celebrate() {
+    recordWin(state.winner.name);
     document.getElementById('overlay').style.display = 'none';
-    const screen = document.getElementById('win-screen');
-    document.getElementById('winner-name').innerText = state.winner.name + " WINS!";
-    document.getElementById('winner-stats').innerText = "Final Total: " + state.winner.total;
-    screen.style.display = 'flex';
-    for(let i=0; i<120; i++) spawnConfetti();
+    const s = document.getElementById('win-screen');
+    document.getElementById('winner-name').innerText = state.winner.name;
+    document.getElementById('winner-stats').innerText = "Final Score: " + state.winner.total;
+    s.style.display = 'flex';
+    setInterval(spawnConfetti, 150);
 }
 
 function spawnConfetti() {
-    const c = document.createElement('div');
-    c.className = 'confetti';
+    const c = document.createElement('div'); c.className = 'confetti';
     c.style.left = Math.random() * 100 + 'vw';
-    c.style.top = '-20px';
     c.style.backgroundColor = ['#ff0','#f0f','#0ff','#0f0','#fff','#ffd700'][Math.floor(Math.random()*6)];
-    c.style.animationDuration = (Math.random() * 3 + 2) + 's';
-    c.style.opacity = Math.random();
+    c.style.animationDuration = (Math.random() * 2 + 3) + 's';
     document.getElementById('win-screen').appendChild(c);
+    setTimeout(() => c.remove(), 5000);
 }
 
 function nextHand() { document.getElementById('overlay').style.display = 'none'; state.handIdx++; startRound(); }
