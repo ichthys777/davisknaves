@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Davis Knaves - Pro Edition</title>
+    <title>Davis Knaves - Final Edition</title>
     <style>
         :root { --gold: #ffd700; --bg: #050505; --card-w: 48px; --card-h: 70px; --lead-green: #00ff00; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
@@ -34,9 +34,9 @@
         .confetti { position: absolute; width: 10px; height: 10px; z-index: 9001; animation: fall linear forwards; top: -10px; }
         @keyframes fall { to { transform: translateY(110dvh) rotate(720deg); } }
         #hof-btn { position: absolute; bottom: 10px; left: 10px; font-size: 0.7rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid #444; padding: 5px; border-radius: 4px; }
-        .recap-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.95rem; }
-        .recap-table th { background: #f0f0f0; padding: 8px; border: 1px solid #ddd; }
-        .recap-table td { padding: 8px; border: 1px solid #ddd; }
+        .recap-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.9rem; }
+        .recap-table th { background: #eee; padding: 6px; border: 1px solid #ccc; color: #1b4d21; }
+        .recap-table td { padding: 8px; border: 1px solid #ccc; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -67,33 +67,34 @@
 
 <div id="overlay"><div class="modal" id="modal-content">
     <h2 style="margin:0; color:#1b4d21;">DAVIS KNAVES</h2>
-    <div style="text-align: left; padding: 15px 0; font-size: 0.9rem; line-height: 1.6;">
-        ✅ Clean Mid-Tricks: <b>+2 pts</b><br>
-        ❌ Trick 1 & 13: <b>-1 pt</b><br>
-        ❌ Each Jack Caught: <b>-1 pt</b><br>
-        🟢 <b>Lead Suit:</b> Outlined in Green
+    <div style="text-align: left; padding: 15px 0; font-size: 0.85rem; line-height: 1.5;">
+        ✅ <b>Clean Tricks:</b> +2 pts<br>
+        ❌ <b>Trick 1 & 13:</b> -1 pt<br>
+        ❌ <b>Jacks:</b> -1 pt each<br>
+        🟢 <b>Lead Card:</b> Outlined in Bright Green<br>
+        🔄 <b>Undo:</b> 2s window after every trick
     </div>
     <button class="btn" style="width:100%" onclick="startGame()">START GAME</button>
 </div></div>
 
 <div id="win-screen">
-    <h1 style="color:var(--gold); font-size:3.5rem; margin:0;">WINNER!</h1>
-    <h2 id="winner-name" style="margin:10px 0; color:white; font-size: 2.5rem;">PLAYER</h2>
-    <p id="winner-stats" style="font-size:1.5rem; color:var(--gold);"></p>
-    <button class="btn" onclick="location.reload()" style="margin-top:20px; z-index: 9999;">NEW GAME</button>
+    <h1 style="color:var(--gold); font-size:3rem; margin:0; text-shadow: 0 0 15px gold;">CHAMPION!</h1>
+    <h2 id="winner-name" style="margin:10px 0; color:white; font-size: 2.2rem;">YOU</h2>
+    <p id="winner-stats" style="font-size:1.4rem; color:var(--gold);"></p>
+    <button class="btn" onclick="location.reload()" style="margin-top:20px; z-index: 10000;">NEW GAME</button>
 </div>
 
 <script>
 const SUITS = ['♣','♦','♠','♥'], VALS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'], ROTATION = ['♣','♦','♥','♠','NT'], CW_ORDER = [0, 3, 1, 2];
 let state = { players: [], handIdx: 0, trump: '♣', turn: null, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE', undoTimer: null };
 
-function clearCache() { if(confirm("Wipe all data and history?")) { localStorage.clear(); location.reload(); } }
+function clearCache() { if(confirm("Wipe all win history and reset statistics?")) { localStorage.clear(); location.reload(); } }
 
 function showHOF() {
     const wins = JSON.parse(localStorage.getItem('knaveWins') || '{"YOU":0,"NORTH":0,"EAST":0,"WEST":0}');
     document.getElementById('overlay').style.display = 'flex';
     document.getElementById('modal-content').innerHTML = `<h3>🏆 HALL OF FAME</h3>` + 
-        Object.entries(wins).map(([k,v]) => `<p>${k}: ${v} Wins</p>`).join('') + 
+        Object.entries(wins).map(([k,v]) => `<p>${k}: ${v} Victories</p>`).join('') + 
         `<button class="btn" style="width:100%; margin-top:10px;" onclick="location.reload()">BACK</button>` +
         `<button class="btn" style="width:100%; margin-top:10px; background:#444; color:white;" onclick="clearCache()">CLEAR CACHE</button>`;
 }
@@ -143,7 +144,7 @@ function handleCardClick(idx) {
         if (state.selected.includes(idx)) state.selected = state.selected.filter(i => i !== idx);
         else if (state.selected.length < 3) state.selected.push(idx);
         const btnCont = document.getElementById('btn-container');
-        btnCont.innerHTML = state.selected.length === 3 ? `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3</button>` : `<span style="color:white">Select 3</span>`;
+        btnCont.innerHTML = state.selected.length === 3 ? `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3</button>` : `<span style="color:white">Select 3 Cards</span>`;
     } else if (state.phase === 'PLAYING' && state.turn === 0 && !state.undoTimer) {
         if (isLegal(state.players[0].hand[idx])) playCard(0, idx);
     }
@@ -177,7 +178,7 @@ function playCard(pI, cI) {
     } else {
         state.turn = null; updateUI();
         const btnCont = document.getElementById('btn-container');
-        btnCont.innerHTML = `<button class="btn btn-undo" onclick="undoTrick()">UNDO TRICK (2s)</button>`;
+        btnCont.innerHTML = `<button class="btn btn-undo" onclick="undoTrick()">UNDO (2s)</button>`;
         state.undoTimer = setTimeout(() => {
             btnCont.innerHTML = ''; state.undoTimer = null;
             resolveTrick();
@@ -228,7 +229,7 @@ function endRound() {
     
     let tableHtml = `<table class="recap-table"><thead><tr><th>PLAYER</th><th>ROUND</th><th>TOTAL</th></tr></thead><tbody>`;
     state.players.forEach(p => {
-        tableHtml += `<tr><td>${p.name}</td><td>+${p.hScore}</td><td><b>${p.total}</b></td></tr>`;
+        tableHtml += `<tr><td>${p.name}</td><td>+${p.hScore}</td><td>${p.total}</td></tr>`;
     });
     tableHtml += `</tbody></table>`;
 
@@ -247,16 +248,16 @@ function celebrate() {
     document.getElementById('winner-name').innerText = state.winner.name;
     document.getElementById('winner-stats').innerText = "Final Score: " + state.winner.total;
     s.style.display = 'flex';
-    setInterval(spawnConfetti, 150); // Flowing continuously
+    setInterval(spawnConfetti, 180);
 }
 
 function spawnConfetti() {
     const c = document.createElement('div'); c.className = 'confetti';
     c.style.left = Math.random() * 100 + 'vw';
     c.style.backgroundColor = ['#ff0','#f0f','#0ff','#0f0','#fff','#ffd700'][Math.floor(Math.random()*6)];
-    c.style.animationDuration = (Math.random() * 2 + 3) + 's';
+    c.style.animationDuration = (Math.random() * 2 + 2) + 's';
     document.getElementById('win-screen').appendChild(c);
-    setTimeout(() => c.remove(), 5000); // Clean up for infinite flow
+    setTimeout(() => c.remove(), 4500);
 }
 
 function nextHand() { document.getElementById('overlay').style.display = 'none'; state.handIdx++; startRound(); }
