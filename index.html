@@ -58,7 +58,7 @@
         <div style="grid-area: east; text-align: center;"><div id="tag-2" class="plr-tag">EAST</div><div id="slot-2" class="slot"></div></div>
     </div>
     <div id="player-zone">
-        <div id="btn-container" style="margin-bottom:10px; height:40px; display:flex; align-items:center; gap:10px;"></div>
+        <div id="btn-container" style="margin-bottom:10px; height:40px; display:flex; align-items:center; gap:10px; font-weight:bold; color:var(--gold);"></div>
         <div id="player-hand"></div>
     </div>
 </div>
@@ -69,7 +69,8 @@
         ✅ <b>Clean Tricks:</b> +2 pts<br>
         ❌ <b>Trick 1 & 13:</b> -1 pt<br>
         ❌ <b>Jacks:</b> -1 pt each<br>
-        🟢 <b>Lead Card:</b> Outlined in Bright Green
+        🟢 <b>Lead Card:</b> Outlined in Bright Green<br><br>
+        <i>* To begin, select 3 cards to pass to the player on your left.</i>
     </div>
     <button class="btn" style="width:100%; margin-bottom:12px;" onclick="startGame()">START GAME</button>
     <div style="display:flex; gap:10px;">
@@ -136,14 +137,19 @@ function updateUI() {
     for(let i=0; i<4; i++) {
         document.getElementById(`tag-${i}`).className = `plr-tag ${state.turn===i ? 'active-tag' : ''}`;
     }
+    
+    // Status text for passing
+    if (state.phase === 'PASSING') {
+        document.getElementById('btn-container').innerHTML = state.selected.length === 3 
+            ? `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3 LEFT</button>` 
+            : `SELECT 3 CARDS TO PASS LEFT (${3 - state.selected.length} LEFT)`;
+    }
 }
 
 function handleCardClick(idx) {
     if (state.phase === 'PASSING') {
         if (state.selected.includes(idx)) state.selected = state.selected.filter(i => i !== idx);
         else if (state.selected.length < 3) state.selected.push(idx);
-        const btnCont = document.getElementById('btn-container');
-        btnCont.innerHTML = state.selected.length === 3 ? `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3</button>` : `<span style="color:white">Select 3 Cards</span>`;
     } else if (state.phase === 'PLAYING' && state.turn === 0 && !state.undoTimer) {
         if (isLegal(state.players[0].hand[idx])) playCard(0, idx);
     }
