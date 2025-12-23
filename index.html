@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Davis Knaves - Lead Highlight</title>
+    <title>Davis Knaves - Corrected Scoring</title>
     <style>
         :root { --gold: #ffd700; --bg: #050505; --card-w: 48px; --card-h: 70px; --lead-green: #00ff00; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
@@ -57,7 +57,7 @@
 </div>
 <div id="overlay"><div class="modal" id="modal-content">
     <h2 style="margin:0; color:#1b4d21;">DAVIS KNAVES</h2>
-    <p style="font-size:0.9rem;">Trick 1 & 13: -1 pt<br>Each Jack Caught: -1 pt<br>Clean Middle Tricks: +1 pt<br><br><b style="color:#008000;">Green Border = Lead Suit</b></p>
+    <p style="font-size:0.9rem;">Trick 1 & 13: -1 pt<br>Each Jack Caught: -1 pt<br>Clean Middle Tricks: +1 pt</p>
     <button class="btn" style="width:100%" onclick="startGame()">START GAME</button>
 </div></div>
 
@@ -87,7 +87,6 @@ function updateUI() {
         let jackIcons = p.jacks.map(j => `<span class="j-mini">J${j}</span>`).join('');
         return `<tr><td style="text-align:left; padding-left:5px;">${p.name}${jackIcons}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`;
     }).join('');
-    
     const handDiv = document.getElementById('player-hand'); handDiv.innerHTML = '';
     state.players[0].hand.forEach((c, i) => {
         const div = document.createElement('div');
@@ -145,9 +144,7 @@ function playCard(pI, cI) {
     let isLead = (state.trick.length === 0);
     let card = state.players[pI].hand.splice(cI, 1)[0]; 
     state.trick.push({player: pI, card: card});
-    
     document.getElementById(`slot-${pI}`).innerHTML = `<div class="card ${card.s==='♥'||card.s==='♦'?'red':''} ${isLead ? 'lead-highlight' : ''}"><span>${card.v}</span><span>${card.s}</span></div>`;
-    
     if (state.trick.length < 4) { state.turn = CW_ORDER[(CW_ORDER.indexOf(pI) + 1) % 4]; updateUI(); if (state.turn !== 0) setTimeout(aiPlay, 700); } 
     else { state.turn = null; setTimeout(resolveTrick, 1500); }
 }
@@ -171,14 +168,14 @@ function resolveTrick() {
     let jacks = state.trick.filter(t => t.card.v === 'J');
     let pts = 0;
     
+    // Corrected Logic: Everything is -1
     if (state.tricksPlayed === 0 || state.tricksPlayed === 12) {
         pts = -1;
     } else if (jacks.length > 0) {
-        pts = (jacks.length * -1); 
+        pts = (jacks.length * -1); // -1 per Jack, cancels the +1 trick point
     } else {
         pts = 1;
     }
-
     jacks.forEach(j => state.players[winObj.player].jacks.push(j.card.s));
     state.players[winObj.player].hScore += pts;
     state.tricksPlayed++; state.turn = winObj.player; state.trick = [];
