@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Davis Knaves - Victory Edition</title>
+    <title>Davis Knaves - Final Edition</title>
     <style>
         :root { --gold: #ffd700; --bg: #050505; --card-w: 48px; --card-h: 70px; --lead-green: #00ff00; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
@@ -28,8 +28,8 @@
         #player-hand { display: flex; gap: 3px; justify-content: center; width: 100%; padding: 0 10px; box-sizing: border-box; }
         .btn { padding: 12px 24px; background: var(--gold); border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; color: black; box-shadow: 0 4px 0 #b8860b; }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 5000; }
-        .modal { background: white; color: black; padding: 25px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; position: relative; }
-        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9000; text-align: center; }
+        .modal { background: white; color: black; padding: 25px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; }
+        #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9000; text-align: center; overflow: hidden;}
         .confetti { position: absolute; width: 10px; height: 10px; z-index: 9001; animation: fall linear forwards; }
         @keyframes fall { to { transform: translateY(100vh) rotate(360deg); } }
     </style>
@@ -71,15 +71,15 @@
 </div></div>
 
 <div id="win-screen">
-    <h1 style="color:var(--gold); font-size:3rem; margin:0;">VICTORY!</h1>
-    <h2 id="winner-name" style="margin:10px 0;">PLAYER</h2>
-    <p id="winner-stats" style="font-size:1.2rem;"></p>
-    <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
+    <h1 style="color:var(--gold); font-size:3.5rem; margin:0; text-shadow: 0 0 20px rgba(255,215,0,0.5);">VICTORY!</h1>
+    <h2 id="winner-name" style="margin:10px 0; color:white; font-size: 2rem;">PLAYER</h2>
+    <p id="winner-stats" style="font-size:1.4rem; color:var(--gold);"></p>
+    <button class="btn" onclick="location.reload()" style="margin-top:20px;">PLAY AGAIN</button>
 </div>
 
 <script>
 const SUITS = ['♣','♦','♠','♥'], VALS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'], ROTATION = ['♣','♦','♥','♠','NT'], CW_ORDER = [0, 3, 1, 2];
-let state = { players: [], handIdx: 0, trump: '♣', turn: null, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE' };
+let state = { players: [], handIdx: 0, trump: '♣', turn: null, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE', winner: null };
 
 function startGame() { init(); document.getElementById('overlay').style.display = 'none'; }
 function init() { state.players = Array.from({length: 4}, (_, i) => ({ id: i, name: i === 0 ? "YOU" : ["NORTH", "EAST", "WEST"][i-1], hand: [], hScore: 0, total: 0, jacks: [] })); startRound(); }
@@ -132,7 +132,7 @@ function handleCardClick(idx) {
 function executePass() {
     let pCards = state.players.map((plr, i) => {
         if (i === 0) return state.selected.sort((a,b)=>b-a).map(idx=>plr.hand.splice(idx,1)[0]);
-        let toPass = plr.hand.splice(0,3); return toPass;
+        return plr.hand.splice(0,3);
     });
     state.players[3].hand.push(...pCards[0]); state.players[1].hand.push(...pCards[3]); state.players[2].hand.push(...pCards[1]); state.players[0].hand.push(...pCards[2]);
     state.players.forEach(sortHand); state.phase = 'PLAYING'; state.selected = []; document.getElementById('btn-container').innerHTML = '';
@@ -154,7 +154,7 @@ function playCard(pI, cI) {
     state.trick.push({player: pI, card: card});
     document.getElementById(`slot-${pI}`).innerHTML = `<div class="card ${card.s==='♥'||card.s==='♦'?'red':''} ${isLead ? 'lead-highlight' : ''}"><span>${card.v}</span><span>${card.s}</span></div>`;
     if (state.trick.length < 4) { state.turn = CW_ORDER[(CW_ORDER.indexOf(pI) + 1) % 4]; updateUI(); if (state.turn !== 0) setTimeout(aiPlay, 700); } 
-    else { state.turn = null; setTimeout(resolveTrick, 1200); }
+    else { state.turn = null; setTimeout(resolveTrick, 1000); }
 }
 
 function aiPlay() {
@@ -188,28 +188,36 @@ function resolveTrick() {
 function endRound() {
     state.players.forEach(p => { if (p.hScore > 0) p.total += p.hScore; });
     let winners = state.players.filter(p => p.total >= 10);
+    
+    document.getElementById('overlay').style.display = 'flex';
+    let resultsHtml = `<h3>ROUND RESULTS</h3>`;
+    state.players.forEach(p => {
+        resultsHtml += `<p style="margin:8px 0;">${p.name}: <b style="color:#1b4d21;">+${p.hScore}</b> (Total: ${p.total})</p>`;
+    });
+
     if (winners.length > 0) {
         state.winner = winners.sort((a,b) => b.total - a.total)[0];
-        showWinScreen();
+        document.getElementById('modal-content').innerHTML = resultsHtml + `<button class="btn" style="width:100%; margin-top:10px;" onclick="celebrateWinner()">VIEW WINNER</button>`;
     } else {
-        document.getElementById('overlay').style.display = 'flex';
-        document.getElementById('modal-content').innerHTML = `<h3>ROUND RESULTS</h3>` + state.players.map(p => `<p>${p.name}: ${p.hScore} pts (Total: ${p.total})</p>`).join('') + `<button class="btn" style="width:100%" onclick="nextHand()">CONTINUE</button>`;
+        document.getElementById('modal-content').innerHTML = resultsHtml + `<button class="btn" style="width:100%; margin-top:10px;" onclick="nextHand()">CONTINUE</button>`;
     }
 }
 
-function showWinScreen() {
+function celebrateWinner() {
+    document.getElementById('overlay').style.display = 'none';
     const screen = document.getElementById('win-screen');
     document.getElementById('winner-name').innerText = state.winner.name + " WINS!";
-    document.getElementById('winner-stats').innerText = "Final Score: " + state.winner.total;
+    document.getElementById('winner-stats').innerText = "Final Total: " + state.winner.total;
     screen.style.display = 'flex';
-    for(let i=0; i<100; i++) spawnConfetti();
+    for(let i=0; i<120; i++) spawnConfetti();
 }
 
 function spawnConfetti() {
     const c = document.createElement('div');
     c.className = 'confetti';
     c.style.left = Math.random() * 100 + 'vw';
-    c.style.backgroundColor = ['#ff0','#f0f','#0ff','#0f0'][Math.floor(Math.random()*4)];
+    c.style.top = '-20px';
+    c.style.backgroundColor = ['#ff0','#f0f','#0ff','#0f0','#fff','#ffd700'][Math.floor(Math.random()*6)];
     c.style.animationDuration = (Math.random() * 3 + 2) + 's';
     c.style.opacity = Math.random();
     document.getElementById('win-screen').appendChild(c);
