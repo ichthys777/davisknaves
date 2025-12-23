@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Davis Knaves - Final Edition</title>
+    <title>Davis Knaves - Pro Edition</title>
     <style>
         :root { --gold: #ffd700; --bg: #050505; --card-w: 48px; --card-h: 70px; --lead-green: #00ff00; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
@@ -33,7 +33,6 @@
         #win-screen { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9000; text-align: center; overflow: hidden; }
         .confetti { position: absolute; width: 10px; height: 10px; z-index: 9001; animation: fall linear forwards; top: -10px; }
         @keyframes fall { to { transform: translateY(110dvh) rotate(720deg); } }
-        #hof-btn { position: absolute; bottom: 10px; left: 10px; font-size: 0.7rem; background: rgba(255,255,255,0.1); color: white; border: 1px solid #444; padding: 5px; border-radius: 4px; }
         .recap-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.9rem; }
         .recap-table th { background: #eee; padding: 6px; border: 1px solid #ccc; color: #1b4d21; }
         .recap-table td { padding: 8px; border: 1px solid #ccc; font-weight: bold; }
@@ -62,7 +61,6 @@
         <div id="btn-container" style="margin-bottom:10px; height:40px; display:flex; align-items:center; gap:10px;"></div>
         <div id="player-hand"></div>
     </div>
-    <button id="hof-btn" onclick="showHOF()">🏆 HALL OF FAME</button>
 </div>
 
 <div id="overlay"><div class="modal" id="modal-content">
@@ -74,11 +72,12 @@
         🟢 <b>Lead Card:</b> Outlined in Bright Green<br>
         🔄 <b>Undo:</b> 2s window after every trick
     </div>
-    <button class="btn" style="width:100%" onclick="startGame()">START GAME</button>
+    <button class="btn" style="width:100%; margin-bottom:10px;" onclick="startGame()">START GAME</button>
+    <button class="btn" style="width:100%; background:#444; color:white; font-size:0.8rem;" onclick="showHOF()">🏆 HALL OF FAME</button>
 </div></div>
 
 <div id="win-screen">
-    <h1 style="color:var(--gold); font-size:3rem; margin:0; text-shadow: 0 0 15px gold;">CHAMPION!</h1>
+    <h1 style="color:var(--gold); font-size:3rem; margin:0;">CHAMPION!</h1>
     <h2 id="winner-name" style="margin:10px 0; color:white; font-size: 2.2rem;">YOU</h2>
     <p id="winner-stats" style="font-size:1.4rem; color:var(--gold);"></p>
     <button class="btn" onclick="location.reload()" style="margin-top:20px; z-index: 10000;">NEW GAME</button>
@@ -92,11 +91,10 @@ function clearCache() { if(confirm("Wipe all win history and reset statistics?")
 
 function showHOF() {
     const wins = JSON.parse(localStorage.getItem('knaveWins') || '{"YOU":0,"NORTH":0,"EAST":0,"WEST":0}');
-    document.getElementById('overlay').style.display = 'flex';
     document.getElementById('modal-content').innerHTML = `<h3>🏆 HALL OF FAME</h3>` + 
         Object.entries(wins).map(([k,v]) => `<p>${k}: ${v} Victories</p>`).join('') + 
         `<button class="btn" style="width:100%; margin-top:10px;" onclick="location.reload()">BACK</button>` +
-        `<button class="btn" style="width:100%; margin-top:10px; background:#444; color:white;" onclick="clearCache()">CLEAR CACHE</button>`;
+        `<button class="btn" style="width:100%; margin-top:10px; background:#d32f2f; color:white;" onclick="clearCache()">CLEAR ALL DATA</button>`;
 }
 
 function recordWin(name) {
@@ -229,7 +227,8 @@ function endRound() {
     
     let tableHtml = `<table class="recap-table"><thead><tr><th>PLAYER</th><th>ROUND</th><th>TOTAL</th></tr></thead><tbody>`;
     state.players.forEach(p => {
-        tableHtml += `<tr><td>${p.name}</td><td>+${p.hScore}</td><td>${p.total}</td></tr>`;
+        let formattedHScore = p.hScore >= 0 ? `+${p.hScore}` : `${p.hScore}`;
+        tableHtml += `<tr><td>${p.name}</td><td>${formattedHScore}</td><td>${p.total}</td></tr>`;
     });
     tableHtml += `</tbody></table>`;
 
