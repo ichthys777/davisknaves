@@ -3,39 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Davis Knaves - Pro Skill</title>
+    <title>Davis Knaves - Pro</title>
     <style>
         :root { --gold: #ffd700; --bg: #050505; --card-w: 48px; --card-h: 70px; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100dvh; }
         #game-layout { display: flex; flex-direction: column; height: 100dvh; background: radial-gradient(circle, #1b4d21 0%, #0a200b 100%); padding-bottom: env(safe-area-inset-bottom); box-sizing: border-box; justify-content: space-between; }
-        #watermark { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); font-size: 2.2rem; color: rgba(255,215,0,0.08); font-weight: 900; pointer-events: none; z-index: 1; letter-spacing: 4px; white-space: nowrap; }
-        #hud { position: relative; padding: 10px; display: flex; justify-content: space-between; z-index: 100; }
-        #score-panel { background: rgba(0,0,0,0.85); padding: 5px; border-radius: 4px; border: 1px solid #444; }
-        #score-table { font-size: 0.75rem; border-collapse: collapse; text-align: center; }
-        #score-table th { color: var(--gold); border-bottom: 1px solid #555; padding: 0 8px; }
+        #watermark { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); font-size: 2.2rem; color: rgba(255,215,0,0.08); font-weight: 900; pointer-events: none; z-index: 1; letter-spacing: 4px; }
+        #hud { position: relative; padding: 10px; display: flex; justify-content: space-between; z-index: 100; align-items: flex-start; }
+        #score-panel { background: rgba(0,0,0,0.85); padding: 5px; border-radius: 4px; border: 1px solid #444; width: 65%; }
+        #score-table { font-size: 0.7rem; border-collapse: collapse; text-align: center; width: 100%; }
+        #score-table th { color: var(--gold); border-bottom: 1px solid #555; padding-bottom: 3px; }
+        .j-mini { font-size: 0.65rem; margin-left: 2px; color: var(--gold); font-weight: bold; }
         #trump-box { background: white; color: black; padding: 5px; border-radius: 4px; border: 2px solid var(--gold); text-align: center; font-weight: bold; font-size: 0.9rem; min-width: 65px; }
         #status-bar { width: 100%; text-align: center; font-size: 1rem; font-weight: bold; color: var(--gold); height: 30px; }
         #arena { flex: 1; display: grid; grid-template-areas: ". north ." "west table east" ". south ."; grid-template-columns: 1fr 1.2fr 1fr; grid-template-rows: 1fr 1.4fr 1fr; position: relative; }
-        .plr-tag { font-size: 0.75rem; background: #222; padding: 4px 10px; border-radius: 6px; position: relative; z-index: 10; }
+        .plr-tag { font-size: 0.75rem; background: #222; padding: 4px 10px; border-radius: 6px; }
         .active-tag { background: #00ff00 !important; color: #000 !important; font-weight: bold; box-shadow: 0 0 12px #00ff00; }
         .slot { width: var(--card-w); height: var(--card-h); border: 1px dashed rgba(255,255,255,0.15); border-radius: 6px; margin: auto; display: flex; align-items: center; justify-content: center; }
-        .card { width: var(--card-w); height: var(--card-h); background: white; color: black; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; border: 1px solid #999; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); position: relative; transition: transform 0.2s; }
+        .card { width: var(--card-w); height: var(--card-h); background: white; color: black; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; border: 1px solid #999; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
         .card.red { color: #d32f2f; }
         .card.legal { border: 2.5px solid #00ff00; transform: translateY(-4px); }
         .card.selected { border: 3px solid var(--gold); transform: translateY(-15px); background: #fffbe6; }
         #player-zone { display: flex; flex-direction: column; align-items: center; width: 100%; padding-bottom: 10px; }
         #player-hand { display: flex; gap: 3px; justify-content: center; width: 100%; padding: 0 10px; box-sizing: border-box; }
-        .controls { margin-bottom: 10px; display: flex; gap: 10px; height: 40px; align-items: center; }
-        .btn { padding: 10px 20px; background: var(--gold); border: none; border-radius: 6px; font-weight: bold; font-size: 0.9rem; cursor: pointer; color: black; box-shadow: 0 4px 0 #b8860b; active { transform: translateY(2px); box-shadow: 0 2px 0 #b8860b; } }
+        .btn { padding: 10px 20px; background: var(--gold); border: none; border-radius: 6px; font-weight: bold; font-size: 0.9rem; cursor: pointer; color: black; box-shadow: 0 4px 0 #b8860b; }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 5000; }
-        .modal { background: white; color: black; padding: 25px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+        .modal { background: white; color: black; padding: 25px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; }
     </style>
 </head>
 <body>
 <div id="game-layout">
     <div id="watermark">DAVIS KNAVES</div>
     <div id="hud">
-        <div id="score-panel"><table id="score-table"><thead><tr><th>PLAYER</th><th>ROUND</th><th>TOTAL</th></tr></thead><tbody id="score-body"></tbody></table></div>
+        <div id="score-panel">
+            <table id="score-table">
+                <thead><tr><th>PLAYER</th><th>RND</th><th>TOT</th></tr></thead>
+                <tbody id="score-body"></tbody>
+            </table>
+        </div>
         <div id="trump-box">TRUMP<br><span id="trump-suit">♣</span></div>
     </div>
     <div id="status-bar"></div>
@@ -46,15 +51,14 @@
         <div style="grid-area: east; text-align: center;"><div id="tag-2" class="plr-tag">EAST</div><div id="slot-2" class="slot"></div></div>
     </div>
     <div id="player-zone">
-        <div class="controls" id="btn-container"></div>
+        <div class="controls" style="margin-bottom:10px; height:40px; display:flex; align-items:center;" id="btn-container"></div>
         <div id="player-hand"></div>
     </div>
 </div>
 <div id="overlay"><div class="modal" id="modal-content">
-    <h2 style="margin:0; color:#1b4d21; font-size: 1.6rem;">DAVIS KNAVES</h2>
-    <p style="font-weight:bold; color:#555;">90% Skill Version</p>
-    <p style="font-size:0.85rem; line-height:1.4;">Trick 1 & 13: -2 pts<br>Each Jack: -2 pts<br>Clean Tricks (2-12): +1 pt<br>Round Score Floored at 0</p>
-    <button class="btn" style="width:100%; margin-top:10px;" onclick="startGame('pro')">START GAME</button>
+    <h2 style="margin:0; color:#1b4d21;">DAVIS KNAVES</h2>
+    <p>Tricks 1 & 13: -2<br>Each Jack: -2<br>Clean Trick (2-12): +1</p>
+    <button class="btn" style="width:100%" onclick="startGame()">START</button>
 </div></div>
 
 <script>
@@ -62,12 +66,13 @@ const SUITS = ['♣','♦','♠','♥'], VALS = ['2','3','4','5','6','7','8','9'
 let state = { players: [], handIdx: 0, trump: '♣', turn: null, trick: [], tricksPlayed: 0, selected: [], phase: 'IDLE' };
 
 function startGame() { init(); document.getElementById('overlay').style.display = 'none'; }
-function init() { state.players = Array.from({length: 4}, (_, i) => ({ id: i, name: i === 0 ? "YOU" : ["NORTH", "EAST", "WEST"][i-1], hand: [], hScore: 0, total: 0 })); startRound(); }
+function init() { state.players = Array.from({length: 4}, (_, i) => ({ id: i, name: i === 0 ? "YOU" : ["NORTH", "EAST", "WEST"][i-1], hand: [], hScore: 0, total: 0, jacks: [] })); startRound(); }
 
 function startRound() {
     state.phase = 'PASSING'; state.trump = ROTATION[state.handIdx % 5]; state.tricksPlayed = 0; state.trick = []; state.selected = [];
+    state.players.forEach(p => { p.jacks = []; p.hScore = 0; });
     let deck = []; SUITS.forEach(s => VALS.forEach(v => deck.push({s, v, r: VALS.indexOf(v)}))); deck.sort(() => Math.random() - 0.5);
-    state.players.forEach(p => { p.hand = deck.splice(0, 13); p.hScore = 0; sortHand(p); });
+    state.players.forEach(p => { p.hand = deck.splice(0, 13); sortHand(p); });
     const ts = document.getElementById('trump-suit'); ts.innerText = state.trump;
     ts.style.color = (state.trump==='♥'||state.trump==='♦') ? 'red' : 'black';
     updateUI();
@@ -78,7 +83,11 @@ function sortHand(p) { p.hand.sort((a,b) => a.s !== b.s ? SUITS.indexOf(a.s)-SUI
 function updateUI() {
     const sb = document.getElementById('score-body');
     const sorted = [state.players[0], state.players[3], state.players[1], state.players[2]];
-    sb.innerHTML = sorted.map(p => `<tr><td>${p.name}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`).join('');
+    sb.innerHTML = sorted.map(p => {
+        let jackIcons = p.jacks.map(j => `<span class="j-mini">J${j}</span>`).join('');
+        return `<tr><td style="text-align:left; padding-left:5px;">${p.name}${jackIcons}</td><td>${p.hScore}</td><td>${p.total}</td></tr>`;
+    }).join('');
+    
     const handDiv = document.getElementById('player-hand'); handDiv.innerHTML = '';
     state.players[0].hand.forEach((c, i) => {
         const div = document.createElement('div');
@@ -99,7 +108,7 @@ function handleCardClick(idx) {
         else if (state.selected.length < 3) state.selected.push(idx);
         const btnCont = document.getElementById('btn-container');
         if (state.selected.length === 3) btnCont.innerHTML = `<button class="btn" style="background:#00ff00;" onclick="executePass()">PASS 3</button>`;
-        else btnCont.innerHTML = `<span style="font-size:0.9rem; color:white;">Select ${3-state.selected.length} more</span>`;
+        else btnCont.innerHTML = `<span style="font-size:0.8rem; color:white;">Select ${3-state.selected.length}</span>`;
     } else if (state.phase === 'PLAYING' && state.turn === 0) {
         if (isLegal(state.players[0].hand[idx])) playCard(0, idx);
     }
@@ -109,16 +118,12 @@ function handleCardClick(idx) {
 function executePass() {
     let pCards = state.players.map((plr, i) => {
         if (i === 0) return state.selected.sort((a,b)=>b-a).map(idx=>plr.hand.splice(idx,1)[0]);
-        // Pro AI Passing: Tries to void a suit
         let counts = {}; SUITS.forEach(s => counts[s] = plr.hand.filter(c => c.s === s).length);
         let sortedSuits = Object.keys(counts).sort((a,b) => counts[a] - counts[b]);
         let toPass = [];
         for(let s of sortedSuits) {
-            let suitCards = plr.hand.filter(c => c.s === s).sort((a,b) => b.r - a.r); // Take highest first
-            while(suitCards.length > 0 && toPass.length < 3) {
-                let card = suitCards.shift();
-                toPass.push(plr.hand.splice(plr.hand.indexOf(card), 1)[0]);
-            }
+            let sCards = plr.hand.filter(c => c.s === s).sort((a,b) => b.r - a.r);
+            while(sCards.length > 0 && toPass.length < 3) { let c = sCards.shift(); toPass.push(plr.hand.splice(plr.hand.indexOf(c), 1)[0]); }
         }
         return toPass;
     });
@@ -146,10 +151,7 @@ function playCard(pI, cI) {
 function aiPlay() {
     let p = state.players[state.turn], legal = p.hand.filter(c => isLegal(c));
     legal.sort((a,b) => a.r - b.r);
-    // Pro AI Logic: Avoid 1st/13th/Jacks, Win Clean
-    let hasJack = state.trick.some(t => t.card.v === 'J');
-    let isDangerTrick = (state.tricksPlayed === 0 || state.tricksPlayed === 12);
-    let chosen = (isDangerTrick || hasJack) ? legal[0] : legal[legal.length-1];
+    let chosen = (state.tricksPlayed === 0 || state.tricksPlayed === 12 || state.trick.some(t=>t.card.v==='J')) ? legal[0] : legal[legal.length-1];
     playCard(state.turn, p.hand.indexOf(chosen));
 }
 
@@ -163,8 +165,18 @@ function cardBeat(n, o) {
 function resolveTrick() {
     let winObj = state.trick.reduce((a,b) => cardBeat(b.card, a.card) ? b : a);
     let jacks = state.trick.filter(t => t.card.v === 'J');
-    let pts = (state.tricksPlayed === 0 || state.tricksPlayed === 12) ? -2 : 1;
-    pts -= (jacks.length * 2);
+    let pts = 0;
+    
+    if (state.tricksPlayed === 0 || state.tricksPlayed === 12) {
+        pts = -2;
+    } else if (jacks.length > 0) {
+        pts = jacks.length * -2;
+    } else {
+        pts = 1;
+    }
+
+    jacks.forEach(j => state.players[winObj.player].jacks.push(j.card.s));
+
     state.players[winObj.player].hScore += pts;
     state.tricksPlayed++; state.turn = winObj.player; state.trick = [];
     for(let i=0; i<4; i++) document.getElementById(`slot-${i}`).innerHTML = '';
@@ -179,7 +191,7 @@ function endRound() {
         showWinScreen();
     } else {
         document.getElementById('overlay').style.display = 'flex';
-        document.getElementById('modal-content').innerHTML = `<h3>ROUND RESULTS</h3>` + state.players.map(p => `<p style="font-size:0.9rem;">${p.name}: ${p.hScore} pts (Total: ${p.total})</p>`).join('') + `<button class="btn" style="width:100%" onclick="nextHand()">NEXT ROUND</button>`;
+        document.getElementById('modal-content').innerHTML = `<h3>ROUND RESULTS</h3>` + state.players.map(p => `<p>${p.name}: ${p.hScore} pts</p>`).join('') + `<button class="btn" style="width:100%" onclick="nextHand()">CONTINUE</button>`;
     }
 }
 
